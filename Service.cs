@@ -1,11 +1,7 @@
 ﻿using System.Text.Json;
+using JsonToDockerVars.Extensions;
 
 namespace JsonToDockerVars;
-
-public static class StringExtensions
-{
-    public static string NoEscaping(this string str) => str.Replace("\n", @"\n").Replace("\t", @"\t");
-}
 
 public sealed record JsonVariable(string Name, string Value)
 {

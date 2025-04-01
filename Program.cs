@@ -1,123 +1,63 @@
 ﻿using System.CommandLine;
 using System.Text.Json;
+using JsonToDockerVars.Commands;
+using JsonToDockerVars.Extensions;
 
 namespace JsonToDockerVars;
 
 class Program
 {
+    
+    private enum OutputFormat
+    {
+        Json,
+        Docker,
+        Koyeb
+    }
+    
+    private static class Descriptions
+    {
+        public static string RootDescription = "JSON to docker/koyeb converter";
+        public static string OutputPathOptionDescription = "Output path. If not specified, will write to console. WILL OVERRIDE ANY CONTENT IN PROVIDED FILE";
+        public static string FilePathOptionDescription = "Path to JSON file";
+
+        public static string ExcludeOptionDescription = "Sections/SubSections/Values to exclude. Example:" +
+                                                        "\n\tSection - will exclude whole section" +
+                                                        "\n\tSection__SubSection - will exclude only sub section" +
+                                                        "\n\tSection__SubSection__Value - will exclude only value" +
+                                                        "\nMultiple excludes are available in format -e \"first\" \"seconds\" \"third\"";
+    }
+
+
     static async Task<int> Main(string[] args)
     {
-        var rootCommand = new RootCommand("JSON to docker/koyeb converter");
+        var rootCommand = new RootCommand(Descriptions.RootDescription);
 
 
-        var filePath = new Argument<string>("filePath", "Path to JSON file");
-        var outputFormat = new Option<string>("--output-format", "Output format")
-            .FromAmong(["json", "docker", "koyeb"]);
-        outputFormat.SetDefaultValue("json");
-        outputFormat.IsRequired = true;
+        var filePathArg = new Argument<FileInfo>("filePath", Descriptions.FilePathOptionDescription).LegalFilePathsOnly().ExistingOnly();
+        
+        var outputFormatOption = new Option<string>(["--output-format", "-of"], "Output format").FromAmong(Enum.GetNames<OutputFormat>());
+        outputFormatOption.SetDefaultValue("json");
+        outputFormatOption.IsRequired = true;
 
-        var outputPath = new Option<string>(["--output-path", "-o"], "Output path. If not specified, will write to console. WILL OVERRIDE ANY CONTENT IN PROVIDED FILE");
+        var outputPathOption = new Option<string>(["--output-path", "-op"], Descriptions.OutputPathOptionDescription);
+        var excludeOption = new Option<IEnumerable<string>>(["--except", "-e",], Descriptions.ExcludeOptionDescription)
+        {
+            AllowMultipleArgumentsPerToken = true
+        };
+
+        var getVariablesCommand = VariableCommands.GetVariablesCommand(filePathArg, outputFormatOption, outputPathOption, excludeOption);
+        getVariablesCommand.AddOption(outputPathOption);
+        getVariablesCommand.AddOption(outputFormatOption);
+        getVariablesCommand.AddOption(excludeOption);
 
 
-        rootCommand.AddOption(outputFormat);
-        rootCommand.AddGlobalOption(outputPath);
-
-        var getVariablesCommand = GetVariablesCommand(filePath, outputFormat, outputPath);
-        getVariablesCommand.AddOption(outputFormat);
-
-        rootCommand.AddArgument(filePath);
-
+        rootCommand.AddArgument(filePathArg);
 
         rootCommand.AddCommand(getVariablesCommand);
-        rootCommand.AddCommand(GetMainSectionsCommand(filePath));
+        rootCommand.AddCommand(SectionCommands.GetMainSectionsCommand(filePathArg));
+
 
         return await rootCommand.InvokeAsync(args);
-    }
-
-    private static IEnumerable<string> EnumerateSingleProp(JsonProperty jsonProperty, string format)
-    {
-        return Service.Extract(jsonProperty).Select(jsonVar => format switch
-        {
-            "json" => jsonVar.ToJsonString(),
-            "docker" => jsonVar.ToDockerString(),
-            "koyeb" => jsonVar.ToKoyebString(),
-            _ => jsonVar.ToJsonString()
-        });
-    }
-
-    private static Command GetVariablesCommand(Argument<string> filePath, Option<string> outputFormat, Option<string> outputPath)
-    {
-        var enumerateSectionsCommand = new Command("variables", "Get variables from JSON file");
-        enumerateSectionsCommand.SetHandler((jsonFile, format, path) =>
-        {
-            if (!File.Exists(jsonFile))
-            {
-                Console.WriteLine($"File {jsonFile} does not exist");
-                return;
-            }
-
-            Action<string> consoleWriter = format switch
-            {
-                "docker" => Console.Write,
-                _ => Console.WriteLine
-            };
-
-            Action<string>? fileWriter = null;
-            StreamWriter? streamWriter = null;
-            if (!string.IsNullOrEmpty(path))
-            {
-                streamWriter = new StreamWriter(path, append: false);
-                fileWriter = format switch
-                {
-                    "docker" => streamWriter.Write,
-                    _ => streamWriter.WriteLine
-                };
-            }
-
-            using (streamWriter)
-            {
-                var jsonContent = File.ReadAllText(jsonFile);
-                using var doc = JsonDocument.Parse(jsonContent);
-
-                foreach (var output in doc.RootElement.EnumerateObject()
-                             .SelectMany(prop =>
-                                 EnumerateSingleProp(prop, format)))
-                {
-                    (fileWriter ?? consoleWriter).Invoke(output);
-                }
-
-                if (fileWriter != null)
-                {
-                    Console.Write($"Output can be found at {Path.GetFullPath(path)}");
-                }
-            }
-        }, filePath, outputFormat, outputPath);
-        return enumerateSectionsCommand;
-    }
-
-    //TODO: ADD EXCEPT, ONLY SECTIONS FOR EXPORT.
-
-    private static Command GetMainSectionsCommand(Argument<string> filePath)
-    {
-        var getMainSectionsCommand = new Command("sections", "Get main sections of JSON file");
-        getMainSectionsCommand.SetHandler((jsonFile) =>
-        {
-            if (File.Exists(jsonFile))
-            {
-                var jsonContent = File.ReadAllText(jsonFile);
-                using var doc = JsonDocument.Parse(jsonContent);
-
-                foreach (var section in doc.RootElement.EnumerateObject())
-                {
-                    Console.WriteLine(section.Name);
-                    //Does not display nested childer. TODO: display it in folder-like structure
-                }
-            }
-            else
-            {
-                Console.WriteLine($"File {jsonFile} does not exist");
-            }
-        }, filePath);
-        return getMainSectionsCommand;
     }
 }
