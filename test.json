@@ -1,0 +1,35 @@
+﻿{
+  "Parent1": {
+    "Child1Obj": {
+      "Value1": "Some data",
+      "Value2": 42
+    },
+    "Child2Obj": {
+      "ValueA": "Another data"
+    }
+  },
+  "Parent2": {
+    "Child1Obj": {
+      "SubChild1": {
+        "DeepValue1": true,
+        "DeepValue2": [1, 2, 3]
+      }
+    }
+  },
+  "Parent3": {
+    "Child1Obj": {
+      "SubChild1": {
+        "SubSubChild1": {
+          "VeryDeepValue": "Deep string value",
+          "Another": "Yes"
+        }
+      },
+      "SubChild2": {
+        "DeepValue":"Here"
+      }
+    }
+  },
+  "Parent4": {
+    "SimpleValue": "Just a value"
+  }
+}

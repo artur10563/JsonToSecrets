@@ -1,0 +1,11 @@
+bin/
+obj/
+/packages/
+riderModule.iml
+/_ReSharper.Caches/
+
+# JetBrains Rider / IntelliJ IDEA
+.idea/
+
+# User-specific settings
+*.sln.DotSettings.user
