@@ -6,7 +6,8 @@ namespace JsonToDockerVars;
 public sealed record JsonVariable(string Name, string Value)
 {
     public string ToJsonString() => @$"{this.Name.NoEscaping()}:{this.Value.NoEscaping()}";
-    public string ToDockerString() => @$"-e {this.Name.NoEscaping()}=""{this.Value.NoEscaping()}"" ";
+    public string ToDockerString() => @$"-e {this.Name.NoEscaping()}=""{this.Value.RemoveEscaping()}"" "; //Need to remove newlines and tabs for multi line values
+    public string ToDockerEnvFileLineString() => $@"{this.Name.NoEscaping()}=""{this.Value.RemoveEscaping()}"""; 
     public string ToKoyebString() => $@"{this.Name.NoEscaping()}=""{this.Value}"""; //Koyeb value must be escaped!
 };
 

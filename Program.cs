@@ -1,25 +1,19 @@
 ﻿using System.CommandLine;
 using System.Text.Json;
 using JsonToDockerVars.Commands;
+using JsonToDockerVars.Enums;
 using JsonToDockerVars.Extensions;
 
 namespace JsonToDockerVars;
 
-class Program
+internal static class Program
 {
-    
-    private enum OutputFormat
-    {
-        Json,
-        Docker,
-        Koyeb
-    }
-    
     private static class Descriptions
     {
         public static string RootDescription = "JSON to docker/koyeb converter";
         public static string OutputPathOptionDescription = "Output path. If not specified, will write to console. WILL OVERRIDE ANY CONTENT IN PROVIDED FILE";
         public static string FilePathOptionDescription = "Path to JSON file";
+        public static string OutputFormatOptionDescription = "Do not use docker_file if multi line values are present. Use docker_string instead";
 
         public static string ExcludeOptionDescription = "Sections/SubSections/Values to exclude. Example:" +
                                                         "\n\tSection - will exclude whole section" +
@@ -36,8 +30,8 @@ class Program
 
         var filePathArg = new Argument<FileInfo>("filePath", Descriptions.FilePathOptionDescription).LegalFilePathsOnly().ExistingOnly();
         
-        var outputFormatOption = new Option<string>(["--output-format", "-of"], "Output format").FromAmong(Enum.GetNames<OutputFormat>());
-        outputFormatOption.SetDefaultValue("json");
+        var outputFormatOption = new Option<OutputFormat>(["--output-format", "-of"], Descriptions.OutputFormatOptionDescription).FromAmong(Enum.GetNames<OutputFormat>());
+        outputFormatOption.SetDefaultValue(OutputFormat.json);
         outputFormatOption.IsRequired = true;
 
         var outputPathOption = new Option<string>(["--output-path", "-op"], Descriptions.OutputPathOptionDescription);

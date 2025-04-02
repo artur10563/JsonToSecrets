@@ -1,12 +1,13 @@
 ﻿using System.CommandLine;
 using System.Text.Json;
+using JsonToDockerVars.Enums;
 using JsonToDockerVars.Extensions;
 
 namespace JsonToDockerVars.Commands;
 
 public static class VariableCommands
 {
-    public static Command GetVariablesCommand(Argument<FileInfo> filePath, Option<string> outputFormat, Option<string> outputPath, Option<IEnumerable<string>> exclude)
+    public static Command GetVariablesCommand(Argument<FileInfo> filePath, Option<OutputFormat> outputFormat, Option<string> outputPath, Option<IEnumerable<string>> exclude)
     {
         var enumerateSectionsCommand = new Command("variables", "Get variables from JSON file");
         enumerateSectionsCommand.SetHandler((jsonFile, format, path, except) =>
@@ -15,12 +16,13 @@ public static class VariableCommands
             if (!validationResult.IsValid)
             {
                 Console.WriteLine(validationResult.ErrorMessage);
+                enumerateSectionsCommand.Invoke("--help");
                 return;
             }
 
             Action<string> consoleWriter = format switch
             {
-                "docker" => Console.Write,
+                OutputFormat.docker_string => Console.Write,
                 _ => Console.WriteLine
             };
 
@@ -31,7 +33,7 @@ public static class VariableCommands
                 streamWriter = new StreamWriter(path, append: false);
                 fileWriter = format switch
                 {
-                    "docker" => streamWriter.Write,
+                    OutputFormat.docker_string => streamWriter.Write,
                     _ => streamWriter.WriteLine
                 };
             }
@@ -56,13 +58,14 @@ public static class VariableCommands
         return enumerateSectionsCommand;
     }
 
-    private static IEnumerable<string> EnumerateSingleProp(JsonProperty jsonProperty, string format, IEnumerable<string> exclude)
+    private static IEnumerable<string> EnumerateSingleProp(JsonProperty jsonProperty, OutputFormat format, IEnumerable<string> exclude)
     {
         return Service.Extract(jsonProperty, exclude).Select(jsonVar => format switch
         {
-            "json" => jsonVar.ToJsonString(),
-            "docker" => jsonVar.ToDockerString(),
-            "koyeb" => jsonVar.ToKoyebString(),
+            OutputFormat.json => jsonVar.ToJsonString(),
+            OutputFormat.docker_string => jsonVar.ToDockerString(),
+            OutputFormat.docker_file => jsonVar.ToDockerEnvFileLineString(),
+            OutputFormat.koyeb => jsonVar.ToKoyebString(),
             _ => jsonVar.ToJsonString()
         });
     }

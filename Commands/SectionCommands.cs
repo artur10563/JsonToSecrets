@@ -15,6 +15,7 @@ public static class SectionCommands
             if (!validationResult.IsValid)
             {
                 Console.WriteLine(validationResult.ErrorMessage);
+                getMainSectionsCommand.Invoke("--help");
                 return;
             }
 
