@@ -1,0 +1,39 @@
+name: CI
+run-name: Run JSON CLI Tests - ${{ github.actor }}
+
+on:
+  pull_request:
+    branches: [main, master, development]
+  push:
+    branches: [main, master, development]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore JsonToDockerVars.csproj
+
+      - name: Build project
+        run: dotnet build JsonToDockerVars.csproj --configuration Release
+
+      - name: Run Variables commands
+        run: |
+          # Run all output formats against test.json
+          dotnet run --project JsonToDockerVars.csproj -- test.json variables --output-format docker_string
+          dotnet run --project JsonToDockerVars.csproj -- test.json variables --output-format docker_file
+          dotnet run --project JsonToDockerVars.csproj -- test.json variables --output-format json
+          dotnet run --project JsonToDockerVars.csproj -- test.json variables --output-format koyeb
+          
+      - name : Run Sections commands
+        run: |
+          dotnet run --project JsonToDockerVars.csproj -- test.json sections

@@ -14,51 +14,71 @@ public sealed record JsonVariable(string Name, string Value)
 public static class Service
 {
     /// <summary>
-    /// Enumerate JsonProperty
+    /// Entry point for a single JsonProperty
     /// </summary>
-    /// <param name="property">JsonSection from which values are extracted</param>
-    /// <param name="exclude">Sections/SubSections/Values to exclude</param>
-    /// <returns>{Section__Sub_Section:value}</returns>
     public static IEnumerable<JsonVariable> Extract(JsonProperty property, IEnumerable<string>? exclude = null)
     {
         var excludeHS = exclude != null
             ? [..exclude]
             : new HashSet<string>();
-
-        return InternalExtractAllValues(property, excludeHS);
+        return Traverse(property.Value, property.Name, excludeHS);
     }
 
     /// <summary>
-    /// Enumerate JsonProperty
+    /// Entry point for entire JsonDocument
     /// </summary>
-    /// <param name="property">JsonSection from which values are extracted</param>
-    /// <param name="exclude">Sections/SubSections/Values to exclude</param>
-    /// <param name="prefix"> DO NOT PASS PREFIX AS IT IS BEING HANDLED INSIDE OF METHOD</param>
-    /// <returns>{Section__Sub_Section:value}</returns>
-    private static IEnumerable<JsonVariable> InternalExtractAllValues(JsonProperty property, HashSet<string> exclude, string prefix = "")
+    public static IEnumerable<JsonVariable> ExtractAll(JsonDocument doc, IEnumerable<string>? exclude = null)
     {
-        prefix = string.IsNullOrEmpty(prefix) ? "" : $"{prefix}__";
-
-        foreach (var sub in property.Value.EnumerateObject())
+        var excludeHS = exclude != null ? new HashSet<string>(exclude) : new HashSet<string>();
+        foreach (var prop in doc.RootElement.EnumerateObject())
         {
-            var prefixedName = $"{prefix}{property.Name}";
-            if (exclude.Contains(property.Name) || exclude.Contains(prefixedName)) continue;
+            foreach (var v in Traverse(prop.Value, prop.Name, excludeHS))
+                yield return v;
+        }
+    }
 
-            //If child is section - continue extracting from it
-            if (sub.Value.ValueKind == JsonValueKind.Object)
-            {
-                foreach (var value in InternalExtractAllValues(sub, exclude, prefixedName))
-                    yield return value;
-            }
-            //Child is value, end extracting
-            else
-            {
-                var name = $"{prefix}{property.Name}__{sub.Name}";
+    /// <summary>
+    /// Core recursive traversal engine
+    /// Handles objects, arrays, nested arrays, and primitives
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException"></exception>
+    private static IEnumerable<JsonVariable> Traverse(JsonElement element, string currentPath, HashSet<string> exclude)
+    {
+        if (exclude.Contains(currentPath))
+            yield break;
 
-                if (exclude.Contains(name)) continue;
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var prop in element.EnumerateObject())
+                {
+                    var nextPath = string.IsNullOrEmpty(currentPath) ? prop.Name : $"{currentPath}__{prop.Name}";
+                    foreach (var v in Traverse(prop.Value, nextPath, exclude))
+                        yield return v;
+                }
+                break;
 
-                yield return new JsonVariable(name, sub.Value.ToString());
-            }
+            case JsonValueKind.Array:
+                var index = 0;
+                foreach (var item in element.EnumerateArray())
+                {
+                    var nextPath = $"{currentPath}__{index}";
+                    foreach (var v in Traverse(item, nextPath, exclude))
+                        yield return v;
+                    index++;
+                }
+                break;
+
+            case JsonValueKind.Undefined:
+            case JsonValueKind.String:
+            case JsonValueKind.Number:
+            case JsonValueKind.True:
+            case JsonValueKind.False:
+            case JsonValueKind.Null:
+                yield return new JsonVariable(currentPath, element.ValueKind == JsonValueKind.Null ? "" : element.ToString());
+                break;
+            
+            default: throw new ArgumentOutOfRangeException(nameof(element), "Unexpected JsonValueKind");
         }
     }
 }

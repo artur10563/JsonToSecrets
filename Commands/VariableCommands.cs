@@ -42,9 +42,8 @@ public static class VariableCommands
             {
                 using var doc = JsonDocument.Parse(jsonFile.ReadAllText());
 
-                foreach (var output in doc.RootElement.EnumerateObject()
-                             .SelectMany(prop =>
-                                 EnumerateSingleProp(prop, format, except)))
+
+                foreach (var output in EnumerateAllProps(doc, format, except))
                 {
                     (fileWriter ?? consoleWriter).Invoke(output);
                 }
@@ -58,15 +57,25 @@ public static class VariableCommands
         return enumerateSectionsCommand;
     }
 
+    private static IEnumerable<string> EnumerateAllProps(JsonDocument document, OutputFormat format, IEnumerable<string> exclude)
+    {
+        return Service.ExtractAll(document, exclude)
+            .Select(jsonVar => FormatVariable(jsonVar, format));
+    }
+
     private static IEnumerable<string> EnumerateSingleProp(JsonProperty jsonProperty, OutputFormat format, IEnumerable<string> exclude)
     {
-        return Service.Extract(jsonProperty, exclude).Select(jsonVar => format switch
+        return Service.Extract(jsonProperty, exclude)
+            .Select(jsonVar => FormatVariable(jsonVar, format));
+    }
+
+    private static string FormatVariable(JsonVariable jsonVar, OutputFormat format) =>
+        format switch
         {
             OutputFormat.json => jsonVar.ToJsonString(),
             OutputFormat.docker_string => jsonVar.ToDockerString(),
             OutputFormat.docker_file => jsonVar.ToDockerEnvFileLineString(),
             OutputFormat.koyeb => jsonVar.ToKoyebString(),
             _ => jsonVar.ToJsonString()
-        });
-    }
+        };
 }

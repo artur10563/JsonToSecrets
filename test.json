@@ -1,35 +1,97 @@
 ﻿{
-  "Parent1": {
-    "Child1Obj": {
-      "Value1": "Some data",
-      "Value2": 42
-    },
-    "Child2Obj": {
-      "ValueA": "Another data"
+  "ObjectObject": {
+    "Child": {
+      "String": "text",
+      "Number": 123,
+      "Boolean": true
     }
   },
-  "Parent2": {
-    "Child1Obj": {
-      "SubChild1": {
-        "DeepValue1": true,
-        "DeepValue2": [1, 2, 3]
-      }
-    }
+
+  "ObjectPrimitive": {
+    "Value": "simple"
   },
-  "Parent3": {
-    "Child1Obj": {
-      "SubChild1": {
-        "SubSubChild1": {
-          "VeryDeepValue": "Deep string value",
-          "Another": "Yes"
+
+  "ObjectArrayPrimitive": {
+    "Values": ["a", "b", "c"]
+  },
+
+  "ObjectArrayObject": {
+    "Items": [
+      { "Name": "Item1", "Count": 1 },
+      { "Name": "Item2", "Count": 2 }
+    ]
+  },
+
+  "ObjectArrayArray": {
+    "Matrix": [
+      [1, 2],
+      [3, 4, 5]
+    ]
+  },
+
+  "ArrayMixed": {
+    "Mixed": [
+      "text",
+      42,
+      true,
+      null,
+      { "Inner": "value" },
+      [10, 20]
+    ]
+  },
+
+  "DeepMixed": {
+    "Level1": {
+      "Level2": [
+        {
+          "Level3": {
+            "Value": "deep",
+            "Array": [
+              { "X": 1 },
+              [ { "Y": true } ]
+            ]
+          }
         }
-      },
-      "SubChild2": {
-        "DeepValue":"Here"
-      }
+      ]
     }
   },
-  "Parent4": {
-    "SimpleValue": "Just a value"
+
+  "NullAndEmpty": {
+    "NullValue": null,
+    "EmptyObject": {},
+    "EmptyArray": []
+  },
+
+  "ArrayOfObjectsWithArrays": {
+    "Configs": [
+      {
+        "Name": "A",
+        "Ports": [80, 443]
+      },
+      {
+        "Name": "B",
+        "Ports": []
+      }
+    ]
+  },
+
+  "ObjectArrayDeepObject": {
+    "Containers": [
+      {
+        "Metadata": {
+          "Labels": {
+            "env": "prod",
+            "region": "eu"
+          }
+        }
+      }
+    ]
+  },
+
+  "BooleanNumberString": {
+    "Bool": false,
+    "Int": 0,
+    "Float": 3.14,
+    "String": "value"
   }
 }
